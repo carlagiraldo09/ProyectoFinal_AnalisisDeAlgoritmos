@@ -90,3 +90,61 @@ def calcular_valor_optimo(solicitudes: list[Jornada]) -> int:
     compatibles = calcular_compatibles_anteriores(ordenadas)
     mejor = calcular_tabla_optima(ordenadas, compatibles)
     return mejor[-1]
+
+
+def reconstruir_jornadas(
+    ordenadas: list[Jornada], compatibles: list[int], mejor: list[int]
+) -> list[Jornada]:
+    """Reconstruye un subconjunto de jornadas con peso total óptimo.
+
+    Ante un empate entre elegir y omitir una jornada, conserva la solución
+    que ya estaba calculada sin esa jornada. Esta regla hace determinista la
+    reconstrucción sin cambiar el valor óptimo.
+
+    Args:
+        ordenadas: Jornadas ordenadas de menor a mayor hora de finalización.
+        compatibles: Lista ``p`` calculada para las mismas jornadas.
+        mejor: Tabla ``M`` con el valor óptimo de cada prefijo.
+
+    Returns:
+        Las jornadas de una solución óptima, ordenadas por hora de inicio.
+
+    Raises:
+        ValueError: Si las tablas no corresponden al número de jornadas.
+    """
+    cantidad = len(ordenadas)
+    if len(compatibles) != cantidad + 1 or len(mejor) != cantidad + 1:
+        raise ValueError("Las tablas no corresponden a las jornadas ordenadas")
+
+    elegidas: list[Jornada] = []
+    j = cantidad
+    while j > 0:
+        pacientes = ordenadas[j - 1][2]
+        valor_al_elegir = pacientes + mejor[compatibles[j]]
+        if valor_al_elegir > mejor[j - 1]:
+            elegidas.append(ordenadas[j - 1])
+            j = compatibles[j]
+        else:
+            j -= 1
+
+    elegidas.reverse()
+    elegidas.sort(key=lambda jornada: (jornada[0], jornada[1], jornada[2]))
+    return elegidas
+
+
+def seleccionar_jornadas(solicitudes: list[Jornada]) -> list[Jornada]:
+    """Elige las jornadas que maximizan los pacientes de alto riesgo.
+
+    Dos jornadas que se tocan en un extremo se consideran compatibles. La
+    función no modifica la lista recibida.
+
+    Args:
+        solicitudes: Solicitudes del mes de una subregión.
+
+    Returns:
+        Las jornadas elegidas sin cruces, ordenadas por hora de inicio.
+    """
+    ordenadas = ordenar_por_fin(solicitudes)
+    compatibles = calcular_compatibles_anteriores(ordenadas)
+    mejor = calcular_tabla_optima(ordenadas, compatibles)
+    return reconstruir_jornadas(ordenadas, compatibles, mejor)
