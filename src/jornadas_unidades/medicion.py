@@ -1,8 +1,14 @@
 """Medición reproducible de las estrategias para programar jornadas."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from time import perf_counter
 from typing import Callable, Optional
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 from datos import generar_solicitudes
 from estrategia import Jornada, seleccionar_jornadas
@@ -211,9 +217,146 @@ def imprimir_resumen(filas: list[FilaMedicion]) -> None:
         )
 
 
+def graficar_tiempos(
+    filas: list[FilaMedicion], directorio: Path
+) -> Path:
+    """Grafica los tiempos comunes y la escala de las soluciones prácticas.
+
+    Args:
+        filas: Resultados devueltos por ``medir_series``.
+        directorio: Carpeta donde se debe guardar la imagen.
+
+    Returns:
+        La ruta del archivo PNG generado.
+    """
+    comunes = [fila for fila in filas if fila.tiempo_exhaustiva is not None]
+    figura, ejes = plt.subplots(
+        1, 2, figsize=(12, 4.8), layout="constrained"
+    )
+
+    ejes[0].plot(
+        [fila.n for fila in comunes],
+        [fila.tiempo_dinamica * 1000 for fila in comunes],
+        "o-",
+        label="Programación dinámica",
+    )
+    ejes[0].plot(
+        [fila.n for fila in comunes],
+        [fila.tiempo_actual * 1000 for fila in comunes],
+        "s-",
+        label="Orden de llegada",
+    )
+    ejes[0].plot(
+        [fila.n for fila in comunes],
+        [fila.tiempo_exhaustiva * 1000 for fila in comunes],
+        "^-",
+        label="Exhaustiva",
+    )
+    ejes[0].set_yscale("log")
+    ejes[0].set_title("Tres estrategias en tamaños pequeños")
+    ejes[0].set_ylabel("Tiempo medio (ms, escala logarítmica)")
+
+    ejes[1].plot(
+        [fila.n for fila in filas],
+        [fila.tiempo_dinamica * 1000 for fila in filas],
+        "o-",
+        label="Programación dinámica",
+    )
+    ejes[1].plot(
+        [fila.n for fila in filas],
+        [fila.tiempo_actual * 1000 for fila in filas],
+        "s-",
+        label="Orden de llegada",
+    )
+    ejes[1].set_title("Estrategias prácticas en tamaños grandes")
+    ejes[1].set_ylabel("Tiempo medio (ms)")
+
+    for eje in ejes:
+        eje.set_xlabel("Número de solicitudes n")
+        eje.grid(True, alpha=0.3)
+        eje.legend()
+    figura.suptitle("Programación de jornadas: tiempo frente al tamaño")
+    directorio.mkdir(parents=True, exist_ok=True)
+    archivo = directorio / "tiempo_vs_n.png"
+    figura.savefig(archivo, dpi=150)
+    plt.close(figura)
+    return archivo
+
+
+def graficar_operaciones(
+    filas: list[FilaMedicion], directorio: Path
+) -> Path:
+    """Grafica las operaciones contadas para las tres estrategias.
+
+    Args:
+        filas: Resultados devueltos por ``medir_series``.
+        directorio: Carpeta donde se debe guardar la imagen.
+
+    Returns:
+        La ruta del archivo PNG generado.
+    """
+    comunes = [
+        fila for fila in filas if fila.operaciones_exhaustiva is not None
+    ]
+    figura, ejes = plt.subplots(
+        1, 2, figsize=(12, 4.8), layout="constrained"
+    )
+
+    ejes[0].plot(
+        [fila.n for fila in comunes],
+        [fila.operaciones_dinamica for fila in comunes],
+        "o-",
+        label="Programación dinámica",
+    )
+    ejes[0].plot(
+        [fila.n for fila in comunes],
+        [fila.operaciones_actual for fila in comunes],
+        "s-",
+        label="Orden de llegada",
+    )
+    ejes[0].plot(
+        [fila.n for fila in comunes],
+        [fila.operaciones_exhaustiva for fila in comunes],
+        "^-",
+        label="Exhaustiva",
+    )
+    ejes[0].set_yscale("log")
+    ejes[0].set_title("Tres estrategias en tamaños pequeños")
+    ejes[0].set_ylabel("Operaciones (escala logarítmica)")
+
+    ejes[1].plot(
+        [fila.n for fila in filas],
+        [fila.operaciones_dinamica for fila in filas],
+        "o-",
+        label="Programación dinámica",
+    )
+    ejes[1].plot(
+        [fila.n for fila in filas],
+        [fila.operaciones_actual for fila in filas],
+        "s-",
+        label="Orden de llegada",
+    )
+    ejes[1].set_title("Estrategias prácticas en tamaños grandes")
+    ejes[1].set_ylabel("Número de operaciones")
+
+    for eje in ejes:
+        eje.set_xlabel("Número de solicitudes n")
+        eje.grid(True, alpha=0.3)
+        eje.legend()
+    figura.suptitle("Programación de jornadas: operaciones frente al tamaño")
+    directorio.mkdir(parents=True, exist_ok=True)
+    archivo = directorio / "operaciones_vs_n.png"
+    figura.savefig(archivo, dpi=150)
+    plt.close(figura)
+    return archivo
+
+
 if __name__ == "__main__":
     resultados = medir_series(
         tamanos_comunes=[4, 6, 8, 10, 12, 14],
         tamanos_grandes=[20, 40, 80, 120, 240, 480],
     )
     imprimir_resumen(resultados)
+    destino = Path("graficas/jornadas_unidades")
+    print(f"Gráfica guardada en {graficar_tiempos(resultados, destino)}")
+    print(f"Gráfica guardada en {graficar_operaciones(resultados, destino)}")
