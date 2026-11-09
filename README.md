@@ -151,3 +151,82 @@ tuvieran exactamente el mismo peso.
 Este cambio no haría óptima la asignación por orden de llegada. La regla voraz
 correcta requiere ordenar primero las solicitudes por su hora de finalización.
 
+### Metodología de medición
+
+La comparación usa las mismas solicitudes para las tres estrategias en cada
+tamaño. Las instancias se generan antes de iniciar el cronómetro con la semilla
+reproducible `2026 + n`; así, el costo de crear los datos no se atribuye a los
+algoritmos. Cada tiempo corresponde al promedio de cinco ejecuciones.
+
+La solución exhaustiva se ejecuta solamente entre 4 y 14 solicitudes, porque
+examina los `2^n` subconjuntos. En esos tamaños se verifica automáticamente que
+su total de pacientes coincida con el de programación dinámica. Las dos
+estrategias prácticas también se miden con 20, 40, 80, 120, 240 y 480
+solicitudes. Además del tiempo, se cuentan operaciones representativas:
+comparaciones del ordenamiento, búsquedas binarias y decisiones de la tabla
+para programación dinámica, y comparaciones de cruces para la regla actual.
+
+Los tiempos dependen del equipo y de los procesos activos, por lo que no deben
+interpretarse de forma aislada. El conteo de operaciones y la forma de las
+curvas permiten comprobar la tendencia con menos dependencia del computador.
+
+### Resultados
+
+![Tiempo frente al tamaño](graficas/jornadas_unidades/tiempo_vs_n.png)
+
+![Operaciones frente al tamaño](graficas/jornadas_unidades/operaciones_vs_n.png)
+
+La estrategia exhaustiva evidencia el crecimiento exponencial: pasa de 16
+subconjuntos con `n = 4` a 16 384 con `n = 14`. En la gráfica de tiempo se
+separa rápidamente de las otras soluciones. Aunque sirve como oráculo para
+verificar instancias pequeñas, no es viable para las 40 a 120 solicitudes
+mensuales de una subregión.
+
+La siguiente selección de los conteos muestra el comportamiento de las dos
+alternativas que sí pueden procesar entradas grandes:
+
+| Solicitudes `n` | Operaciones de programación dinámica | Operaciones de la regla actual |
+|---:|---:|---:|
+| 40 | 359 | 327 |
+| 80 | 858 | 1 536 |
+| 120 | 1 446 | 2 863 |
+| 240 | 3 344 | 10 954 |
+| 480 | 7 649 | 42 917 |
+
+La programación dinámica sigue la tendencia esperada de `Θ(n log n)`, causada
+por el ordenamiento y las búsquedas binarias. La regla por orden de llegada
+puede hacer pocas comparaciones en algunas instancias, pero en el peor caso
+compara cada solicitud con muchas jornadas aceptadas y alcanza `O(n²)`. En la
+instancia de 480 solicitudes hizo más de cinco veces las operaciones de la
+solución dinámica. La curva de tiempo reproduce esta diferencia y muestra que
+la solución dinámica escala mejor.
+
+El costo computacional no es el único criterio. En las instancias sintéticas,
+la regla actual también dejó pacientes sin atender frente al óptimo:
+
+| `n` | Pacientes: dinámica | Pacientes: regla actual | Diferencia |
+|---:|---:|---:|---:|
+| 40 | 2 201 | 1 736 | 465 |
+| 80 | 4 116 | 3 902 | 214 |
+| 120 | 5 171 | 3 778 | 1 393 |
+| 480 | 21 933 | 16 576 | 5 357 |
+
+Estos valores no predicen la demanda real, porque provienen de datos
+sintéticos. Sí demuestran que aceptar por llegada no ofrece garantía de
+optimalidad y que su resultado depende del orden en que se reciben las
+solicitudes.
+
+### Recomendación para la operación
+
+Se recomienda reemplazar la asignación por orden de llegada con la solución de
+programación dinámica de intervalos ponderados. Es la única de las estrategias
+prácticas evaluadas que garantiza maximizar los pacientes de alto riesgo sin
+asignar jornadas cruzadas. Su costo `Θ(n log n)` es adecuado para el volumen
+mensual indicado por Plataforma Pulso y, en las pruebas, se mantuvo por debajo
+de un milisegundo incluso con 480 solicitudes.
+
+La estrategia exhaustiva debe conservarse únicamente para pruebas automáticas
+con entradas pequeñas. La regla actual puede mantenerse como línea base de
+comparación, pero no debe decidir la programación, pues no garantiza la mejor
+cobertura y su costo puede crecer cuadráticamente.
+
