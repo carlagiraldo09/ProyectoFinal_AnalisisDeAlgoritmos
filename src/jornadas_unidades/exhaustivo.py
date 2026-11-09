@@ -43,16 +43,17 @@ def seleccionar_exhaustivo(solicitudes: list[Jornada]) -> list[Jornada]:
     mejor: list[Jornada] = []
     mejor_total = 0
     cantidad = len(solicitudes)
+    ordenadas = sorted(
+        solicitudes,
+        key=lambda jornada: (jornada[0], jornada[1], jornada[2]),
+    )
 
     for decisiones in product((False, True), repeat=cantidad):
         candidatas = [
-            solicitudes[indice]
+            ordenadas[indice]
             for indice in range(cantidad)
             if decisiones[indice]
         ]
-        candidatas.sort(
-            key=lambda jornada: (jornada[0], jornada[1], jornada[2])
-        )
         if not _subconjunto_sin_cruces(candidatas):
             continue
 
