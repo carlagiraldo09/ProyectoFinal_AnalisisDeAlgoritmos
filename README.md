@@ -150,6 +150,15 @@ construir y revisar cada uno. Su tiempo es `Θ(n·2^n)` y su espacio auxiliar es
 `Θ(n)`. La regla actual puede comparar cada nueva solicitud con todas las ya
 aceptadas: tarda `O(n²)` en el peor caso y usa `O(n)` de espacio.
 
+Para respaldar el análisis espacial se midió con `tracemalloc` la memoria
+adicional máxima de la programación dinámica, después de generar la entrada y
+de una ejecución inicial de calentamiento. Con 120 solicitudes el pico fue de
+aproximadamente **5,6 KiB** y con 480 fue de **29,7 KiB**. Al multiplicar `n`
+por cuatro, la memoria creció cerca de 5,3 veces, una variación compatible con
+el crecimiento lineal y con la administración interna de memoria de Python.
+La medición no incluye la lista de entrada, el intérprete ni sus bibliotecas;
+representa solamente las asignaciones adicionales durante el algoritmo.
+
 Las pruebas cubren la entrada vacía, una jornada, ninguna y todas las jornadas
 cruzadas, jornadas que se tocan, el ejemplo manual y el contraejemplo de la
 regla actual. También comparan el valor de la solución dinámica con el de la

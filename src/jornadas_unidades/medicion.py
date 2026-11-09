@@ -1,5 +1,6 @@
 """Medición reproducible de las estrategias para programar jornadas."""
 
+import tracemalloc
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -59,8 +60,38 @@ def medir_tiempo(
     return total / repeticiones
 
 
+def medir_memoria_pico(
+    algoritmo: Algoritmo, solicitudes: list[Jornada]
+) -> int:
+    """Mide las asignaciones adicionales máximas de una estrategia.
+
+    La entrada se crea antes de iniciar el seguimiento y se ejecuta una vez el
+    algoritmo para reducir el efecto de inicializaciones internas de Python.
+
+    Args:
+        algoritmo: Función que selecciona un subconjunto de jornadas.
+        solicitudes: Instancia ya generada que se debe procesar.
+
+    Returns:
+        El pico de memoria adicional en bytes registrado por ``tracemalloc``.
+    """
+    algoritmo(solicitudes)
+    tracemalloc.start()
+    algoritmo(solicitudes)
+    _, pico = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    return pico
+
+
 def _ordenar_contando(jornadas: list[Jornada]) -> tuple[list[Jornada], int]:
-    """Ordena por finalización con merge sort y cuenta comparaciones."""
+    """Ordena por finalización con merge sort y cuenta comparaciones.
+
+    Args:
+        jornadas: Jornadas que se deben ordenar sin modificar la lista original.
+
+    Returns:
+        La copia ordenada y el número de comparaciones entre jornadas.
+    """
     if len(jornadas) <= 1:
         return jornadas.copy(), 0
 
@@ -147,7 +178,14 @@ def contar_operaciones_actual(solicitudes: list[Jornada]) -> int:
 
 
 def _total_pacientes(jornadas: list[Jornada]) -> int:
-    """Suma los pacientes atendidos por unas jornadas."""
+    """Suma los pacientes atendidos por unas jornadas.
+
+    Args:
+        jornadas: Jornadas seleccionadas por una estrategia.
+
+    Returns:
+        La cantidad total de pacientes de alto riesgo atendidos.
+    """
     return sum(jornada[2] for jornada in jornadas)
 
 
@@ -360,3 +398,7 @@ if __name__ == "__main__":
     destino = Path("graficas/jornadas_unidades")
     print(f"Gráfica guardada en {graficar_tiempos(resultados, destino)}")
     print(f"Gráfica guardada en {graficar_operaciones(resultados, destino)}")
+    for cantidad in (120, 480):
+        instancia = generar_solicitudes(cantidad, 2026 + cantidad)
+        memoria = medir_memoria_pico(seleccionar_jornadas, instancia)
+        print(f"Memoria adicional para n={cantidad}: {memoria / 1024:.1f} KiB")
