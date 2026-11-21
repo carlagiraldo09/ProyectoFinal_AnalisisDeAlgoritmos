@@ -6,6 +6,77 @@
 
 ## Análisis del problema
 
+### Contexto y proceso completo de Plataforma Pulso
+
+Plataforma Pulso apoya el tamizaje de diabetes y recibe diariamente resultados
+de 290 laboratorios e instituciones prestadoras de salud. Cada resultado
+contiene el tipo y número de documento del paciente, el laboratorio y lote de
+origen, la fecha del resultado, un índice de riesgo entre 0 y 100 y el
+municipio. Como estos datos identifican personas y describen su estado de
+salud, su integridad y confidencialidad son requisitos del proceso, no solo
+características técnicas.
+
+El flujo operativo estudiado comprende cuatro operaciones relacionadas:
+
+1. **Consolidación de pacientes repetidos.** De los 1 450 000 resultados
+   pendientes de un día típico, entre el 8 % y el 15 % corresponde a personas
+   que ya aparecen en la plataforma. Para cada paciente debe conservarse
+   únicamente el resultado más reciente, sin modificar los registros
+   originales ni hacer desaparecer pacientes. El procedimiento actual compara
+   cada resultado nuevo con la lista consolidada hasta encontrar su documento.
+2. **Lista diaria de llamadas.** A partir de los resultados consolidados se
+   deben seleccionar exactamente los 9 000 pacientes con mayor índice de
+   riesgo. Cuando dos pacientes tienen el mismo índice, se atiende primero el
+   resultado más antiguo. El proceso actual mantiene la lista mediante
+   ordenamiento por inserción.
+3. **Programación de unidades móviles.** Cada una de las nueve subregiones
+   dispone de una unidad y recibe entre 40 y 120 solicitudes mensuales. Debe
+   elegirse un conjunto de jornadas sin cruces. En este proyecto se maximiza la
+   cantidad de pacientes de alto riesgo atendidos; esta es la operación
+   desarrollada en el Laboratorio 4.
+4. **Vigilancia de calidad de laboratorios.** Para cada laboratorio se busca el
+   intervalo consecutivo de lotes con el mayor exceso acumulado de resultados
+   positivos. Se procesan cerca de 30 lotes diarios por laboratorio y tres años
+   de historia equivalen aproximadamente a 33 000 lotes por laboratorio. El
+   procedimiento actual examina todos los subarreglos y puede tardar varios
+   días.
+
+Las operaciones de consolidación y lista de llamadas se ejecutan dentro de una
+ventana nocturna de cuatro horas, entre la 01:00 y las 05:00. En conjunto, el
+proceso actual tarda cerca de siete horas, por lo que no cumple esa ventana.
+Este tiempo es una referencia combinada de ambas operaciones y no se atribuye
+por completo a ninguna de ellas por separado.
+
+El servidor disponible consume 380 W, ejecuta un solo hilo y no permite
+distribuir el procesamiento. Además de la restricción temporal, el resultado
+debe respetar las reglas funcionales: un registro vigente por paciente, una
+lista de exactamente 9 000 llamadas, jornadas sin solapamientos y un intervalo
+de vigilancia exactamente óptimo. Los registros originales de los
+laboratorios deben permanecer sin alteraciones para conservar su trazabilidad.
+
+### Alcance del proyecto
+
+El proyecto implementará y comparará dos de las cuatro operaciones. La primera
+es la programación de las jornadas de unidades móviles, ya terminada como parte
+del Laboratorio 4 mediante intervalos ponderados. La segunda será la
+consolidación de pacientes repetidos, para la cual se estudiarán diferentes
+estructuras y estrategias antes de recomendar una solución.
+
+Para ambas operaciones se presentarán al menos dos alternativas, análisis de
+complejidad temporal y espacial, pruebas de corrección, mediciones con datos
+sintéticos reproducibles y una estimación de energía. El análisis distinguirá
+los resultados medidos de las extrapolaciones al volumen real y explicará sus
+supuestos y limitaciones. También se examinarán las consecuencias de una
+decisión incorrecta sobre la oportunidad de atención, la privacidad y la
+equidad.
+
+Las operaciones de selección de llamadas y vigilancia de laboratorios se
+describen para comprender el proceso completo, pero no se implementarán. La
+solución tampoco se integrará con sistemas clínicos reales ni utilizará datos
+personales verdaderos. Por tratarse de un ejercicio académico, los datos serán
+sintéticos y las recomendaciones constituirán un análisis algorítmico, no una
+decisión clínica ni una validación jurídica del sistema.
+
 ### Programación de las jornadas de las unidades móviles
 
 Plataforma Pulso recibe mensualmente entre 40 y 120 solicitudes de jornada en
