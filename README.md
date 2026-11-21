@@ -77,6 +77,80 @@ personales verdaderos. Por tratarse de un ejercicio académico, los datos serán
 sintéticos y las recomendaciones constituirán un análisis algorítmico, no una
 decisión clínica ni una validación jurídica del sistema.
 
+### Modelo de la consolidación de pacientes
+
+La segunda operación recibe una secuencia de resultados en el mismo orden en
+que llegaron a la plataforma. Cada resultado se representará mediante un
+registro inmutable con estos campos:
+
+| Campo | Tipo en Python | Significado |
+|---|---|---|
+| `tipo_documento` | `str` | Tipo de identificación del paciente |
+| `numero_documento` | `str` | Número de identificación del paciente |
+| `id_laboratorio` | `str` | Laboratorio o IPS que produjo el resultado |
+| `id_lote` | `str` | Lote de procesamiento del laboratorio |
+| `fecha_resultado` | `datetime` | Fecha y hora del resultado |
+| `indice_riesgo` | `int` | Índice de riesgo entre 0 y 100 |
+| `municipio` | `str` | Municipio asociado al resultado |
+
+La identidad de un paciente es la tupla
+`(tipo_documento, numero_documento)`. No se usará solamente el número porque
+dos documentos de distinto tipo podrían compartir la misma representación
+textual. Los demás campos pertenecen al resultado clínico y no forman parte de
+la clave.
+
+La salida será una lista nueva con exactamente un resultado por clave de
+paciente. Para facilitar la comparación reproducible entre estrategias, las
+claves se presentarán en el orden de su primera aparición en la entrada. Los
+registros de entrada son inmutables y ninguna estrategia puede alterar la
+secuencia original.
+
+#### Reglas de selección y desempate
+
+Para cada paciente se conservará el registro cuya `fecha_resultado` sea más
+reciente. Un registro reemplaza al guardado únicamente cuando su fecha es
+estrictamente posterior. Si dos registros del mismo paciente tienen la misma
+fecha y hora, se conserva el primero recibido en la secuencia de entrada. Esta
+regla determinista evita que las estrategias escojan resultados diferentes en
+un empate no especificado por el caso.
+
+Una salida se considera correcta si cumple simultáneamente estas propiedades:
+
+- contiene todas las claves de pacientes presentes en la entrada y ninguna
+  adicional;
+- contiene una sola vez cada clave;
+- para cada clave conserva el resultado de fecha máxima;
+- en un empate de fecha conserva el primero recibido;
+- no modifica los registros ni el orden de la entrada;
+- presenta la salida en el orden determinista definido.
+
+La entrada vacía produce una lista vacía. Un paciente con un solo resultado se
+conserva sin cambios. Los datos sintéticos usarán fechas comparables y un
+índice de riesgo dentro del intervalo permitido, pero las estrategias no
+supondrán que los resultados de un paciente llegan ordenados por fecha.
+
+#### Estrategias que se compararán
+
+1. **Búsqueda secuencial en una lista.** Representa el procedimiento actual:
+   para cada resultado se recorre la lista consolidada hasta hallar la misma
+   clave o llegar al final. Su peor caso es cuadrático y servirá como línea
+   base.
+2. **Ordenamiento estable.** Se agrupan los registros al ordenarlos por la
+   clave del paciente y se elige el más reciente de cada grupo. La estabilidad
+   preserva el primer registro recibido cuando las fechas empatan. Se espera
+   un tiempo `Θ(n log n)`.
+3. **Tabla hash con encadenamiento.** La clave del paciente se ubica en una
+   cubeta y las colisiones se resuelven comparando la clave completa dentro de
+   la lista de esa cubeta. Se controlará el factor de carga mediante
+   redimensionamiento. Su tiempo esperado es lineal con un factor de carga
+   acotado, aunque su peor caso sigue siendo cuadrático si todas las claves
+   colisionan.
+
+Las tres estrategias aplicarán las mismas reglas, recibirán las mismas entradas
+y producirán los pacientes en el mismo orden de primera aparición. Las
+mediciones incluirán todo el trabajo necesario para obtener esa salida, pero no
+la generación previa de los datos de entrada.
+
 ### Programación de las jornadas de las unidades móviles
 
 Plataforma Pulso recibe mensualmente entre 40 y 120 solicitudes de jornada en
