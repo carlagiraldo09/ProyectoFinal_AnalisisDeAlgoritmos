@@ -151,6 +151,115 @@ y producirán los pacientes en el mismo orden de primera aparición. Las
 mediciones incluirán todo el trabajo necesario para obtener esa salida, pero no
 la generación previa de los datos de entrada.
 
+### Diseño y complejidad de la consolidación
+
+Para el análisis se usa `n` como la cantidad de resultados recibidos, `u` como
+la cantidad de pacientes distintos, `m` como el número de cubetas de la tabla
+hash y `α = u/m` como su factor de carga. La longitud de los documentos se
+considera acotada por el formato del sistema; si se tratara como variable,
+calcular y comparar claves añadiría un factor proporcional a esa longitud.
+
+#### Estructuras de datos
+
+| Elemento | Estructura | Motivo |
+|---|---|---|
+| Resultado | Clase de datos inmutable | Evita alterar los registros originales |
+| Clave de paciente | Tupla `(tipo, número)` | Distingue documentos de diferente tipo |
+| Estrategia secuencial | Lista de resultados | Representa el procedimiento actual |
+| Estrategia de ordenamiento | Listas de pares `(posición, resultado)` | Conserva la primera aparición durante la agrupación |
+| Estrategia hash | Arreglo de cubetas con listas | Permite resolver colisiones por encadenamiento |
+| Orden de la tabla hash | Lista de claves | Produce la salida sin ordenar nuevamente |
+
+La tabla hash implementada no depende de `dict`. Aplica una mezcla FNV-1a
+determinista a los dos componentes de la clave y obtiene la cubeta mediante el
+residuo con una capacidad prima. Cada búsqueda compara la clave completa, no
+solo su valor hash. Antes de insertar un paciente nuevo, la tabla se amplía
+cuando el factor de carga superaría `0,75`; la nueva capacidad es el primer
+primo mayor o igual al doble de la anterior y todas las entradas se reubican.
+
+#### Pseudocódigo de la búsqueda secuencial
+
+```text
+CONSOLIDAR-SECUENCIAL(resultados)
+    consolidados ← lista vacía
+    para cada resultado en resultados
+        buscar su clave de izquierda a derecha en consolidados
+        si la clave no existe
+            agregar resultado al final
+        si la clave existe y resultado.fecha > guardado.fecha
+            reemplazar el guardado en la misma posición
+    retornar consolidados
+```
+
+Con `u` pacientes ya consolidados, una inserción puede efectuar `u`
+comparaciones. Si todas las claves son distintas, el total es
+`0 + 1 + ... + (n - 1)`, por lo que el peor caso es `Θ(n²)`. Si todos los
+resultados pertenecen al mismo paciente, la clave se encuentra en la primera
+posición y el tiempo es `Θ(n)`. El espacio adicional de la salida es `Θ(u)`.
+
+#### Pseudocódigo del ordenamiento estable
+
+```text
+CONSOLIDAR-ORDENAMIENTO(resultados)
+    numerados ← pares (posición original, resultado)
+    agrupados ← MERGE-SORT-ESTABLE(numerados, clave del paciente)
+    seleccionados ← lista vacía
+    para cada grupo de una misma clave en agrupados
+        elegido ← primer resultado del grupo
+        para cada candidato restante del grupo
+            si candidato.fecha > elegido.fecha
+                elegido ← candidato
+        guardar (posición de la primera aparición, elegido)
+    ordenar seleccionados por posición con MERGE-SORT-ESTABLE
+    retornar los resultados sin las posiciones
+```
+
+El primer merge sort cuesta `Θ(n log n)`, recorrer los grupos cuesta `Θ(n)` y
+el segundo ordenamiento cuesta `Θ(u log u)`. Como `u ≤ n`, el tiempo total es
+`Θ(n log n)` y el espacio adicional máximo es `Θ(n)`. Dar prioridad a la mitad
+izquierda durante la mezcla hace estable el ordenamiento; por eso, al reemplazar
+solo ante una fecha estrictamente posterior, se conserva el primer registro en
+los empates.
+
+#### Pseudocódigo de la tabla hash
+
+```text
+CONSOLIDAR-HASH(resultados)
+    tabla ← arreglo de cubetas vacías
+    orden_claves ← lista vacía
+    para cada resultado en resultados
+        índice ← HASH(resultado.clave) módulo cantidad de cubetas
+        buscar la clave completa dentro de esa cubeta
+        si la clave existe y resultado.fecha > guardado.fecha
+            reemplazar el resultado de esa entrada
+        si la clave no existe
+            redimensionar y reubicar entradas si se superaría α = 0,75
+            agregar (clave, resultado) a su cubeta
+            agregar clave a orden_claves
+    retornar el resultado asociado con cada clave de orden_claves
+```
+
+Con dispersión uniforme, buscar o insertar cuesta `Θ(1 + α)` en promedio. Al
+mantener `α` acotado, procesar y recuperar los resultados cuesta `Θ(n)`
+esperado. Cada redimensionamiento cuesta `Θ(u)`, pero las capacidades crecen
+aproximadamente al doble, de modo que ese trabajo es amortizado. En el peor
+caso todas las claves caen en una misma cubeta y el tiempo se degrada a
+`Θ(n²)`. El espacio es `Θ(m + u)` y, como el redimensionamiento mantiene
+`m = Θ(u)`, se simplifica a `Θ(u)`.
+
+#### Comparación teórica
+
+| Estrategia | Mejor caso | Caso esperado o general | Peor caso | Espacio adicional |
+|---|---:|---:|---:|---:|
+| Búsqueda secuencial | `Θ(n)` | Depende de pacientes y orden | `Θ(n²)` | `Θ(u)` |
+| Merge sort estable | `Θ(n log n)` | `Θ(n log n)` | `Θ(n log n)` | `Θ(n)` |
+| Tabla hash | `Θ(n)` | `Θ(n)` con `α` acotado | `Θ(n²)` | `Θ(u)` |
+
+La tabla hash es la candidata teórica para el volumen diario porque evita
+ordenar y mantiene acceso esperado constante. Esta conclusión deberá
+contrastarse con tiempo, operaciones y memoria medidos antes de formular la
+recomendación definitiva.
+
 ### Programación de las jornadas de las unidades móviles
 
 Plataforma Pulso recibe mensualmente entre 40 y 120 solicitudes de jornada en
