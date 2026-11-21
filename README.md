@@ -350,6 +350,54 @@ colisiones y otros procesos pueden modificar los tiempos y la memoria. Por
 ello, los valores sirven para comparar órdenes de magnitud y deben validarse en
 el servidor antes de una puesta en producción.
 
+#### Consumo energético de la consolidación
+
+El enunciado asigna al servidor una potencia de 380 W, equivalentes a
+`0,38 kW`. Para cada estrategia se estima la energía de una ejecución mediante
+`E = P·t`, con el tiempo extrapolado convertido a horas. La proyección anual
+supone una consolidación cada noche durante 365 días:
+
+```text
+Ejecución: E = 0,38 kW × tiempo en horas
+Año:      E_anual = E × 365
+```
+
+| Estrategia | Tiempo extrapolado por noche | Energía por noche | Energía anual |
+|---|---:|---:|---:|
+| Secuencial | 65,04 h | 24,7151 kWh | 9 020,9971 kWh |
+| Merge sort | 24,98 s | 0,002637 kWh | 0,9626 kWh |
+| Hash | 14,29 s | 0,001508 kWh | 0,5505 kWh |
+
+La proyección secuencial es un escenario teórico: no podría terminar dentro de
+la ventana nocturna ni repetirse diariamente en esas condiciones. Sirve para
+mostrar que el crecimiento cuadrático no solo retrasa la atención, sino que
+mantendría ocupado el servidor durante mucho más tiempo. Entre las alternativas
+viables, hash requiere aproximadamente un 42,8 % menos energía que merge sort
+para esta operación, pero la diferencia absoluta estimada es de apenas
+0,4120 kWh al año. La decisión no debe justificarse con un ahorro ambiental
+exagerado; sus ventajas principales son tiempo y escalabilidad.
+
+Como referencia del proceso actual completo, las operaciones de consolidación
+y lista de llamadas tardan juntas cerca de siete horas. Si se atribuyen los
+380 W constantes a todo ese intervalo, la línea base combinada es:
+
+```text
+0,38 kW × 7 h = 2,66 kWh por noche
+2,66 kWh × 365 = 970,90 kWh por año
+```
+
+No es válido comparar esa cifra directamente con los 0,5505 kWh anuales de la
+tabla hash como si toda la diferencia fuera un ahorro. El enunciado no indica
+cuántas de las siete horas corresponden a consolidar y cuántas a construir la
+lista de llamadas. Para estimar el nuevo consumo total sería necesario medir
+ambas operaciones por separado en el servidor.
+
+La estimación supone que el servidor demanda 380 W constantes y que toda esa
+potencia se atribuye al algoritmo. No incluye consumo en reposo, refrigeración,
+almacenamiento ni comunicaciones. Además, combina tiempos extrapolados desde
+el computador de prueba con la potencia nominal del servidor; por tanto, es
+una proyección académica y no una medición eléctrica de producción.
+
 ### Programación de las jornadas de las unidades móviles
 
 Plataforma Pulso recibe mensualmente entre 40 y 120 solicitudes de jornada en
