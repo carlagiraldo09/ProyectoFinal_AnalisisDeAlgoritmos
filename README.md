@@ -260,6 +260,96 @@ ordenar y mantiene acceso esperado constante. Esta conclusión deberá
 contrastarse con tiempo, operaciones y memoria medidos antes de formular la
 recomendación definitiva.
 
+### Evaluación experimental de la consolidación
+
+Las tres estrategias recibieron exactamente las mismas entradas para cada
+tamaño, generadas con una semilla fija y un 12 % de registros repetidos. Los
+datos se crearon antes de iniciar el cronómetro. Cada tiempo es el promedio de
+cinco ejecuciones con `time.perf_counter()` después de una ejecución de
+calentamiento. La memoria adicional máxima se midió por separado con
+`tracemalloc`; no incluye la entrada ya creada, el intérprete ni las
+bibliotecas cargadas.
+
+El contador registra comparaciones de claves, fechas y posiciones. Esta unidad
+común permite estudiar el crecimiento con menos dependencia del computador,
+aunque no representa todas las instrucciones ejecutadas: el tiempo sí incluye
+el cálculo del hash, las asignaciones y los redimensionamientos. La estrategia
+secuencial se midió hasta 4 000 resultados por su rápido crecimiento; merge
+sort y hash se ampliaron hasta 100 000.
+
+![Tiempo de consolidación](graficas/consolidacion_pacientes/tiempo_vs_n.png)
+
+![Comparaciones de consolidación](graficas/consolidacion_pacientes/comparaciones_vs_n.png)
+
+![Memoria de consolidación](graficas/consolidacion_pacientes/memoria_vs_n.png)
+
+Algunos resultados representativos son:
+
+| `n` | Estrategia | Tiempo promedio | Comparaciones | Memoria adicional máxima |
+|---:|---|---:|---:|---:|
+| 100 | Secuencial | 1,162 ms | 4 142 | 0,875 KiB |
+| 100 | Merge sort | 0,577 ms | 1 118 | 5,305 KiB |
+| 100 | Hash | 0,716 ms | 185 | 14,543 KiB |
+| 4 000 | Secuencial | 1 781,823 ms | 6 754 891 | 28,805 KiB |
+| 4 000 | Merge sort | 34,894 ms | 84 377 | 556,207 KiB |
+| 4 000 | Hash | 26,807 ms | 7 621 | 776,871 KiB |
+| 100 000 | Merge sort | 1 398,248 ms | 2 985 107 | 16 667,066 KiB |
+| 100 000 | Hash | 985,473 ms | 184 250 | 26 309,043 KiB |
+
+La búsqueda secuencial usa menos memoria porque su salida contiene referencias
+a los registros sin estructuras auxiliares grandes, pero esa ventaja no
+compensa su tiempo cuadrático. La tabla hash usa más memoria que merge sort en
+estas mediciones debido al arreglo de cubetas, las listas de colisiones y la
+lista que conserva el orden de primera aparición.
+
+#### Factores de crecimiento observados
+
+Para la búsqueda secuencial se compararon `n = 2 000` y `n = 4 000`. Al
+duplicar la entrada, el tiempo se multiplicó por 4,05 y las comparaciones por
+3,98, valores cercanos al factor 4 esperado para `Θ(n²)`. La memoria se
+multiplicó por 2,03, coherente con almacenar una salida lineal.
+
+Para las estrategias eficientes se compararon 50 000 y 100 000 resultados:
+
+| Estrategia | Factor de tiempo | Factor de comparaciones | Factor de memoria | Referencia teórica |
+|---|---:|---:|---:|---:|
+| Merge sort | 2,23 | 2,14 | 1,98 | 2,13 para `n log n` |
+| Hash | 2,25 | 2,01 | 2,01 | 2 para crecimiento lineal esperado |
+
+Las comparaciones y la memoria siguen muy de cerca la teoría. Los factores de
+tiempo son un poco mayores por el costo del intérprete, la gestión de memoria,
+la caché y los procesos activos. Por eso la evidencia no se basa únicamente en
+tiempos de pared.
+
+#### Extrapolación al volumen diario
+
+El volumen objetivo es `N = 1 450 000` resultados. La búsqueda secuencial se
+proyectó desde 4 000 mediante `(N/4 000)²`; merge sort se proyectó desde
+100 000 mediante `(N log N)/(100 000 log 100 000)`; y la tabla hash mediante
+`N/100 000`. Para la memoria se aplicó crecimiento lineal a las tres.
+
+| Estrategia | Factor aplicado al tiempo | Tiempo estimado | Comparaciones estimadas | Memoria adicional estimada |
+|---|---:|---:|---:|---:|
+| Secuencial | 131 406,25 | 65,04 horas | `8,88·10^11` | 10,20 MiB |
+| Merge sort | 17,87 | 24,98 segundos | `5,33·10^7` | 236,01 MiB |
+| Hash | 14,50 | 14,29 segundos | `2,67·10^6` | 372,54 MiB |
+
+La estimación secuencial excede ampliamente la ventana nocturna de cuatro
+horas. Merge sort y hash quedarían muy por debajo de ella para esta operación
+aislada, y hash presenta el menor tiempo y número de comparaciones estimados.
+Sin embargo, esto no demuestra todavía que el proceso completo cumpla la
+ventana: las cuatro horas corresponden al conjunto de consolidación y lista de
+llamadas, mientras que las siete horas actuales también son una cifra
+combinada.
+
+Estas proyecciones no son ejecuciones de 1 450 000 registros ni mediciones del
+servidor de 380 W. Suponen que se mantiene el 12 % de repetidos, que no cambia
+la distribución de las claves y que continúa la tendencia observada. El sistema
+operativo, la versión de Python, la longitud real de los documentos, las
+colisiones y otros procesos pueden modificar los tiempos y la memoria. Por
+ello, los valores sirven para comparar órdenes de magnitud y deben validarse en
+el servidor antes de una puesta en producción.
+
 ### Programación de las jornadas de las unidades móviles
 
 Plataforma Pulso recibe mensualmente entre 40 y 120 solicitudes de jornada en
