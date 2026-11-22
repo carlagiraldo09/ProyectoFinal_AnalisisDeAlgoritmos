@@ -703,8 +703,82 @@ La exhaustiva, en cambio, requeriría cerca de 306 kWh para una sola subregión 
 40 solicitudes y sería físicamente inviable con 120. Evitarla sí previene un
 desperdicio energético considerable.
 
-Las demás implicaciones éticas, sociales, normativas y ambientales del proceso
-completo quedan pendientes para la entrega final del proyecto.
+La consolidación también muestra que una estrategia eficiente no siempre usa
+menos memoria: la tabla hash ocupa más que merge sort por sus cubetas y listas
+auxiliares. La organización debe evaluar tiempo, memoria y energía en conjunto,
+sin presentar diferencias pequeñas como un beneficio ambiental decisivo. El
+mayor aporte ambiental es evitar algoritmos que mantengan innecesariamente
+ocupado el servidor y dimensionar la infraestructura según mediciones reales.
+
+### Decisión sobre el objetivo
+
+Maximizar pacientes de alto riesgo atendidos es una decisión de política de
+salud, no una conclusión puramente matemática. Debe aprobarla la Secretaría de
+Salud con participación de profesionales clínicos, responsables de salud
+pública, coordinación territorial y representantes de las comunidades. El
+equipo de desarrollo debe explicar las consecuencias de cada objetivo,
+implementar el criterio acordado y permitir su auditoría, pero no decidirlo por
+cuenta propia.
+
+La cantidad de pacientes de alto riesgo favorece el impacto clínico inmediato,
+pero puede dejar por fuera jornadas pequeñas, lejanas o costosas de atender.
+Una subregión rural podría recibir menos cobertura aunque sus habitantes tengan
+mayores barreras de acceso. Por eso deben revisarse periódicamente resultados
+por municipio y población, y considerar restricciones complementarias de
+cobertura mínima o rotación territorial si se observa exclusión sistemática.
+
+### Riesgos para pacientes y atención oportuna
+
+La corrección algorítmica no garantiza que la información clínica sea correcta.
+Los principales riesgos del proceso son:
+
+- si la consolidación elimina por error a un paciente, esa persona puede no
+  aparecer entre quienes deben ser llamados y perder una atención oportuna;
+- si conserva un resultado antiguo, el riesgo y el municipio usados para tomar
+  decisiones pueden estar desactualizados;
+- si mantiene duplicados, una persona puede ocupar más de un lugar y desplazar
+  a otra de la lista de 9 000 llamadas;
+- si fusiona personas diferentes porque compara solo el número y no el tipo de
+  documento, puede generar una decisión clínica equivocada y revelar datos a
+  quien no corresponde;
+- si una jornada tiene horarios o cantidades incorrectas, la programación será
+  óptima para datos equivocados y no para la situación real.
+
+Las pruebas de unicidad, conservación de todas las claves, selección de la fecha
+máxima y no modificación de los originales reducen estos riesgos. En operación
+también se necesitan validaciones de formato, alertas ante cambios anómalos,
+registros de auditoría, conciliación de totales y un procedimiento humano para
+corregir identidades o resultados discutidos.
+
+### Calidad de los laboratorios
+
+Un índice alto no demuestra por sí solo que una persona esté enferma. Si un
+laboratorio está mal calibrado, una persona sana podría recibir prioridad,
+experimentar preocupación y ocupar recursos de llamada o desplazamiento que
+otra persona necesitaba. Un falso negativo puede ser aún más grave porque
+retrasa la detección. La lista debe apoyar una revisión clínica y una prueba
+confirmatoria, no reemplazar el diagnóstico profesional.
+
+La vigilancia por lotes ayuda a detectar excesos anómalos, pero sus alertas
+también requieren interpretación humana. Conviene conservar laboratorio, lote,
+fecha y trazabilidad del registro; comparar patrones históricos; revisar el
+equipo y repetir muestras cuando corresponda. Corregir un lote no debe borrar
+silenciosamente el dato original ni ocultar quién autorizó el cambio.
+
+### Privacidad, seguridad y control humano
+
+El tipo y número de documento, el municipio y el índice de riesgo permiten
+identificar y caracterizar la salud de una persona. El repositorio usa solamente
+datos sintéticos y no debe almacenar exportaciones reales. En un sistema real
+se requerirían, como mínimo, acceso por función, cifrado en tránsito y en
+almacenamiento, registro de consultas y cambios, copias de seguridad, tiempos
+de conservación definidos y respuesta ante incidentes.
+
+Las salidas deben mostrar solo la información necesaria para la tarea. El
+personal autorizado debe poder revisar por qué se conservó un resultado o se
+eligió una jornada, corregir datos con trazabilidad y detener una acción cuando
+exista una inconsistencia. Ninguna optimización justifica ocultar errores,
+automatizar un diagnóstico o eliminar la posibilidad de revisión y reclamo.
 
 ## Conclusiones
 
