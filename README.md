@@ -780,6 +780,41 @@ eligió una jornada, corregir datos con trazabilidad y detener una acción cuand
 exista una inconsistencia. Ninguna optimización justifica ocultar errores,
 automatizar un diagnóstico o eliminar la posibilidad de revisión y reclamo.
 
+### Referentes normativos y buenas prácticas
+
+Este prototipo es académico y utiliza datos sintéticos; por tanto, la siguiente
+revisión orienta el diseño, pero no certifica el cumplimiento jurídico de una
+plataforma real. La aplicabilidad concreta debe ser evaluada por la organización
+con asesoría jurídica y clínica.
+
+| Referente colombiano | Relación con Plataforma Pulso |
+|---|---|
+| [Ley 1581 de 2012](https://www1.funcionpublica.gov.co/eva/gestornormativo/norma.php?5=&i=49981) | Considera sensibles los datos relativos a la salud y establece principios de seguridad, confidencialidad, finalidad y acceso restringido para el tratamiento de datos personales. |
+| [Resolución 1995 de 1999](https://www.minsalud.gov.co/Normatividad_Nuevo/RESOLUCI%C3%93N%201995%20DE%201999.pdf) | Regula el manejo, reserva, integridad, custodia y acceso a la historia clínica. Es un referente si los resultados pasan a formar parte de los registros clínicos. |
+| [Ley Estatutaria 1751 de 2015](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=60733) | Reconoce el acceso oportuno, eficaz y de calidad a la salud, además de la confidencialidad y reserva de la historia clínica. |
+| [Ley 2015 de 2020](https://www1.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=105472) | Establece la historia clínica electrónica interoperable y resalta seguridad, integridad, autenticidad, disponibilidad y acceso a la información. |
+
+Estos referentes se traducen en prácticas concretas para el caso:
+
+- recolectar y mostrar únicamente los datos necesarios para consolidar,
+  priorizar y programar la atención;
+- definir quién puede consultar, corregir, exportar o eliminar información y
+  aplicar acceso según la función de cada persona;
+- proteger la información durante su almacenamiento y transmisión, y registrar
+  accesos, cambios y decisiones relevantes;
+- conservar los resultados originales y relacionar cada corrección con su
+  responsable, fecha y motivo;
+- establecer tiempos de conservación, copias de seguridad y procedimientos de
+  recuperación y respuesta ante incidentes;
+- verificar identidad, calidad y actualidad antes de llamar o desplazar una
+  unidad, y habilitar revisión humana y corrección;
+- excluir datos personales reales del repositorio, las pruebas, las gráficas y
+  los mensajes de depuración.
+
+La eficiencia algorítmica apoya la atención oportuna, pero no reemplaza estas
+medidas. Una solución rápida que mezcla identidades, expone información o no
+permite corregir errores seguiría siendo inadecuada para el proceso de salud.
+
 ## Conclusiones
 
 La programación dinámica coincide con la solución exacta en las pruebas y
