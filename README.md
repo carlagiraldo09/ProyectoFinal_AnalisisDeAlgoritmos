@@ -574,7 +574,9 @@ posición. F no se elige porque 90 no supera 105. E sí se elige y se salta a
 
 ## Implementación
 
-La solución se separó en módulos con responsabilidades específicas:
+### Jornadas de unidades móviles
+
+La primera operación se separó en módulos con responsabilidades específicas:
 
 - [`estrategia.py`](src/jornadas_unidades/estrategia.py): ordenamiento,
   compatibilidades, tabla dinámica y reconstrucción de las jornadas.
@@ -593,6 +595,31 @@ Las funciones trabajan con copias o listas nuevas para conservar las
 solicitudes originales. La solución exhaustiva ordena una vez las solicitudes
 y después recorre sus `2^n` subconjuntos; se usa como oráculo, no como propuesta
 para producción.
+
+### Consolidación de pacientes
+
+La segunda operación se organiza así:
+
+- [`modelo.py`](src/consolidacion_pacientes/modelo.py): registro inmutable y
+  clave compuesta del paciente.
+- [`secuencial.py`](src/consolidacion_pacientes/secuencial.py): procedimiento
+  actual basado en búsqueda lineal.
+- [`ordenamiento.py`](src/consolidacion_pacientes/ordenamiento.py): merge sort
+  estable, agrupación y recuperación del orden de primera aparición.
+- [`tabla_hash.py`](src/consolidacion_pacientes/tabla_hash.py): tabla propia con
+  encadenamiento, factor de carga y redimensionamiento.
+- [`datos.py`](src/consolidacion_pacientes/datos.py): resultados sintéticos con
+  proporción de duplicados y semilla configurables.
+- [`pruebas.py`](src/consolidacion_pacientes/pruebas.py): casos controlados,
+  colisiones, redimensionamiento y 100 instancias aleatorias contra un oráculo.
+- [`medicion.py`](src/consolidacion_pacientes/medicion.py): tiempos,
+  comparaciones, memoria y exportación a CSV.
+- [`graficar.py`](src/consolidacion_pacientes/graficar.py): figuras reproducibles
+  a partir del archivo de resultados.
+
+Las tres estrategias respetan la misma interfaz y no modifican la entrada. El
+resultado CSV queda en [`resultados/consolidacion.csv`](resultados/consolidacion.csv)
+y permite regenerar las gráficas sin repetir las mediciones.
 
 ## Evaluación del desempeño
 
@@ -883,12 +910,38 @@ permite corregir errores seguiría siendo inadecuada para el proceso de salud.
 
 ## Conclusiones
 
-La programación dinámica coincide con la solución exacta en las pruebas y
-supera la regla actual en pacientes atendidos. Las mediciones reproducen el
-crecimiento `Θ(n log n)` y muestran que el volumen real cabe ampliamente en la
-referencia operativa. La solución exhaustiva es útil para verificar, no para
-producción. Las conclusiones del proceso completo se completarán con la segunda
-operación en la entrega final.
+El proyecto estudió el proceso completo de Plataforma Pulso e implementó dos
+operaciones con necesidades diferentes. Para programar jornadas, los intervalos
+ponderados por programación dinámica garantizan el máximo de pacientes de alto
+riesgo sin cruces en `Θ(n log n)`. Coincidieron con la solución exhaustiva en el
+ejemplo manual y 50 instancias aleatorias, y superaron la asignación por orden
+de llegada en calidad de la solución. La fuerza bruta es útil como oráculo, no
+como alternativa operativa.
+
+Para consolidar pacientes, las estrategias secuencial, merge sort y tabla hash
+coincidieron con un oráculo independiente en 100 casos aleatorios y respetaron
+fecha máxima, empates, unicidad e inmutabilidad. Las mediciones reprodujeron los
+crecimientos previstos. A 1 450 000 registros, la búsqueda secuencial se estimó
+en 65,04 horas, merge sort en 24,98 segundos y hash en 14,29 segundos. Por ello
+se recomienda la tabla hash, condicionada a verificar en el servidor sus
+372,54 MiB adicionales estimados, el factor de carga y las colisiones. Merge
+sort es el respaldo si se prioriza un peor caso `Θ(n log n)` o menor memoria.
+
+La programación de jornadas consume una cantidad energética mínima porque se
+ejecuta mensualmente sobre entradas pequeñas. En consolidación, hash se estimó
+en 0,5505 kWh anuales frente a 0,9626 kWh de merge sort; esa diferencia es
+pequeña y no debe exagerarse. La principal mejora es reducir el tiempo de
+procesamiento y apoyar una atención oportuna. Tampoco puede afirmarse el ahorro
+total del proceso sin separar cuánto de las siete horas actuales corresponde a
+consolidación y cuánto a la lista de llamadas.
+
+La recomendación final combina eficiencia y responsabilidad: conservar
+originales, auditar cambios, proteger datos sensibles y mantener revisión
+humana. Si se incorpora hipertensión, además de duplicarse el volumen debe
+agregarse el tipo de tamizaje a la clave para no mezclar enfermedades y debe
+revisarse cómo se asignan las 9 000 llamadas. Los resultados son reproducibles
+con datos sintéticos, pero las extrapolaciones deben validarse con información
+anonimizada y mediciones en el servidor antes de una decisión de producción.
 
 ## Reproducción de pruebas y mediciones
 
@@ -900,13 +953,25 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Ejecute las pruebas y luego regenere las mediciones y gráficas:
+Ejecute primero las pruebas de ambas operaciones:
 
 ```bash
 python src/jornadas_unidades/pruebas.py
-python src/jornadas_unidades/medicion.py
+python src/consolidacion_pacientes/pruebas.py
 ```
 
-La medición usa semillas y tamaños fijos. Los tiempos pueden variar entre
-equipos, pero las instancias, los conteos y las tendencias son reproducibles.
+Luego regenere mediciones y gráficas. El experimento de consolidación puede
+tardar más de un minuto porque incluye la estrategia secuencial y la medición
+de memoria:
+
+```bash
+python src/jornadas_unidades/medicion.py
+python src/consolidacion_pacientes/medicion.py
+python src/consolidacion_pacientes/graficar.py
+```
+
+Los programas de medición usan semillas y tamaños fijos. Los tiempos pueden
+variar entre equipos, pero las instancias, los conteos y las tendencias son
+reproducibles. Regenerar `resultados/consolidacion.csv` reemplaza los tiempos
+por los obtenidos en el computador donde se ejecute el experimento.
 
