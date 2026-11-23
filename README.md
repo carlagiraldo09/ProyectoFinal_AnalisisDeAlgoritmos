@@ -398,6 +398,72 @@ almacenamiento ni comunicaciones. Además, combina tiempos extrapolados desde
 el computador de prueba con la potencia nominal del servidor; por tanto, es
 una proyección académica y no una medición eléctrica de producción.
 
+#### Comparación y recomendación para la consolidación
+
+Las tres estrategias producen la misma salida correcta, pero presentan
+compromisos distintos en el volumen típico de 1 450 000 resultados:
+
+| Criterio | Secuencial | Merge sort estable | Tabla hash |
+|---|---|---|---|
+| Tiempo estimado | 65,04 h | 24,98 s | 14,29 s |
+| Comparaciones estimadas | `8,88·10^11` | `5,33·10^7` | `2,67·10^6` |
+| Memoria adicional estimada | 10,20 MiB | 236,01 MiB | 372,54 MiB |
+| Complejidad esperada | Depende del orden, hasta `Θ(n²)` | `Θ(n log n)` | `Θ(n)` |
+| Peor caso | `Θ(n²)` | `Θ(n log n)` | `Θ(n²)` por colisiones extremas |
+
+Se recomienda la tabla hash con encadenamiento. Presenta el menor tiempo y
+número de comparaciones, mantiene el orden de primera aparición y permite
+conservar el resultado más reciente sin ordenar toda la entrada. Su memoria es
+mayor y su garantía de tiempo es esperada, por lo que antes de producción deben
+verificarse la memoria disponible, el factor de carga y la distribución de
+colisiones en el servidor.
+
+Merge sort es una alternativa de respaldo apropiada si se necesita un peor
+caso `Θ(n log n)` o si la memoria medida de la tabla no cabe en el entorno. La
+búsqueda secuencial debe mantenerse solamente como referencia del procedimiento
+actual y para entradas muy pequeñas; su proyección no satisface la ventana.
+
+La recomendación técnica no elimina los controles funcionales. La ejecución
+debe conciliar el número de pacientes distintos, comprobar que ninguna clave
+desaparezca, conservar los originales y registrar redimensionamientos o tasas
+de colisión anómalas.
+
+#### Escenario de crecimiento: tamizaje de hipertensión
+
+Si la plataforma incorpora tamizaje de hipertensión, el enunciado plantea que
+los resultados diarios se duplican hasta `2 900 000`. Aplicando las mismas
+tendencias y manteniendo el 12 % de repetidos se obtiene:
+
+| Estrategia | Tiempo estimado | Comparaciones estimadas | Memoria adicional estimada |
+|---|---:|---:|---:|
+| Secuencial | 260,16 h (10,84 días) | `3,55·10^12` | 20,39 MiB |
+| Merge sort | 52,41 s | `1,12·10^8` | 472,02 MiB |
+| Hash | 28,58 s | `5,34·10^6` | 745,08 MiB |
+
+Duplicar la entrada multiplica aproximadamente por cuatro el trabajo
+cuadrático, por 2,10 el trabajo `n log n` y por dos el trabajo esperado lineal.
+La tabla hash seguiría siendo la alternativa más rápida bajo los supuestos del
+experimento y su energía anual estimada para esta operación sería cerca de
+1,10 kWh. El uso de unos 745 MiB adicionales debe comprobarse en el servidor;
+si no es viable, merge sort conserva un tiempo estimado menor a un minuto con
+menos memoria.
+
+El aumento no es únicamente cuantitativo. El modelo actual identifica el último
+resultado de diabetes por paciente. Si llegan resultados de dos programas, la
+clave debe incorporar el tipo de tamizaje, por ejemplo
+`(tipo_documento, numero_documento, tipo_tamizaje)`, o mantener historiales
+separados. De lo contrario, un resultado reciente de hipertensión podría
+reemplazar indebidamente el de diabetes. El esquema, el generador y las pruebas
+deberían ampliarse antes de activar el nuevo programa.
+
+También se debe definir si los índices de riesgo de ambas enfermedades son
+comparables y cómo se distribuyen las 9 000 llamadas diarias. Mantener la misma
+capacidad con el doble de resultados aumenta la competencia por atención y
+puede afectar de manera distinta a municipios o grupos de pacientes. Esa regla
+requiere una decisión clínica y de política pública, seguimiento de equidad y
+capacidad de revisión humana; no debe resolverse sumando o comparando índices
+sin validación.
+
 ### Programación de las jornadas de las unidades móviles
 
 Plataforma Pulso recibe mensualmente entre 40 y 120 solicitudes de jornada en
